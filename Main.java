@@ -1,32 +1,79 @@
+import java.sql.*;
 import java.util.Scanner;
 
-public class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        Library library = new Library();
-        int choice;
+public class Library {
+    Scanner sc = new Scanner(System.in);
 
-        do {
-            System.out.println("\n===== Library Management System =====");
-            System.out.println("1. Add Book");
-            System.out.println("2. Show Available Books");
-            System.out.println("3. Issue Book");
-            System.out.println("4. Return Book");
-            System.out.println("5. Exit");
-            System.out.print("Enter your choice: ");
-            choice = sc.nextInt();
-            sc.nextLine(); // consume newline
+    // Add Book
+    public void addBook() {
+        System.out.print("Enter book name: ");
+        String book = sc.nextLine();
+        try (Connection con = DBConnection.getConnection()) {
+            String query = "INSERT INTO books (title, issued) VALUES (?, false)";
+            PreparedStatement pst = con.prepareStatement(query);
+            pst.setString(1, book);
+            pst.executeUpdate();
+            System.out.println(book + " has been added successfully!");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
-            switch (choice) {
-                case 1 -> library.addBook();
-                case 2 -> library.showAvailableBooks();
-                case 3 -> library.issueBook();
-                case 4 -> library.returnBook();
-                case 5 -> System.out.println("Exiting... Goodbye!");
-                default -> System.out.println("Invalid choice! Please try again.");
+    // Show Available Books
+    public void showAvailableBooks() {
+        try (Connection con = DBConnection.getConnection()) {
+            String query = "SELECT title FROM books WHERE issued = false";
+            Statement stmt = con.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+            System.out.println("Available books:");
+            boolean found = false;
+            while (rs.next()) {
+                System.out.println("* " + rs.getString("title"));
+                found = true;
             }
-        } while (choice != 5);
+            if (!found) {
+                System.out.println("No books available!");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
-        sc.close();
+    // Issue Book
+    public void issueBook() {
+        System.out.print("Enter book name to issue: ");
+        String book = sc.nextLine();
+        try (Connection con = DBConnection.getConnection()) {
+            String query = "UPDATE books SET issued = true WHERE title = ? AND issued = false";
+            PreparedStatement pst = con.prepareStatement(query);
+            pst.setString(1, book);
+            int rows = pst.executeUpdate();
+            if (rows > 0) {
+                System.out.println("The book has been issued!");
+            } else {
+                System.out.println("This book does not exist or is already issued.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Return Book
+    public void returnBook() {
+        System.out.print("Enter book name to return: ");
+        String book = sc.nextLine();
+        try (Connection con = DBConnection.getConnection()) {
+            String query = "UPDATE books SET issued = false WHERE title = ? AND issued = true";
+            PreparedStatement pst = con.prepareStatement(query);
+            pst.setString(1, book);
+            int rows = pst.executeUpdate();
+            if (rows > 0) {
+                System.out.println("The book has been returned!");
+            } else {
+                System.out.println("This book was not issued or does not exist.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
